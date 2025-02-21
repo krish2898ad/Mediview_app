@@ -1,0 +1,18 @@
+.specialist-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .specialist-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .search-input:focus {
+    box-shadow: 0 0 0 2px rgba(var(--primary), 0.2);
+  }
+  
+  .map-container {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
