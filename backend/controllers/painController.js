@@ -20,7 +20,7 @@ export const getPainCauses = async (req, res) => {
             return res.status(400).json({ error: "Body parts are required." });
         }
         console.log({parts});
-        const prompt = `What are the possible causes of pain in the ${parts}? Limit the response to 20 words.`;
+        const prompt = `Diagnosis for pain in the ${parts}? Limit the response to 20 words.`;
 
         const result = await model.generateContent(prompt).catch((err) => {
             console.error("Error generating content from Gemini AI:", err.message); // Log error message

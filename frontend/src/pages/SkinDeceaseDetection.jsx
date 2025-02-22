@@ -1,69 +1,94 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import { FaUpload, FaCamera, FaUserMd, FaCalendarAlt, FaPaperPlane } from "react-icons/fa"
-import "./SkinDiagnosis.css"
+import { useState, useRef } from "react";
+import { FaUpload, FaCamera, FaUserMd, FaCalendarAlt, FaPaperPlane } from "react-icons/fa";
+import axios from "axios";
+import "./SkinDiagnosis.css";
 
 const SkinDiagnosis = () => {
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [capturedImage, setCapturedImage] = useState(null)
-  const [messages, setMessages] = useState([])
-  const [userInput, setUserInput] = useState("")
-  const chatboxRef = useRef(null)
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [userInput, setUserInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const chatboxRef = useRef(null);
 
   const handleFileChange = (event) => {
-    const file = event.target.files[0]
-    setSelectedFile(file)
-    addImageToChat(file)
-  }
+    const file = event.target.files[0];
+    setSelectedFile(file);
+    addImageToChat(file);
+  };
 
   const handleCapture = (event) => {
-    const file = event.target.files[0]
+    const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onloadend = () => {
-        setCapturedImage(reader.result)
-        addImageToChat(file)
-      }
-      reader.readAsDataURL(file)
+        setCapturedImage(reader.result);
+        addImageToChat(file);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const addImageToChat = (file) => {
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onloadend = () => {
-      const newMessage = { type: "image", content: reader.result, sender: "user" }
-      setMessages((prevMessages) => [...prevMessages, newMessage])
-      simulateAIResponse("I've received your image. What would you like to know about it?")
-    }
-    reader.readAsDataURL(file)
-  }
+      const newMessage = { type: "image", content: reader.result, sender: "user" };
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      simulateAIResponse("I've received your image. What would you like to know about it?");
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSendMessage = () => {
-    if (userInput.trim() === "") return
+    if (userInput.trim() === "") return;
 
-    const newMessage = { type: "text", content: userInput, sender: "user" }
-    setMessages((prevMessages) => [...prevMessages, newMessage])
-    setUserInput("")
-    simulateAIResponse()
-  }
+    const newMessage = { type: "text", content: userInput, sender: "user" };
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setUserInput("");
+    simulateAIResponse();
+  };
 
   const simulateAIResponse = (customResponse = null) => {
     setTimeout(() => {
       const aiResponse =
         customResponse ||
-        "Thank you for your query. Based on the image and your description, it appears to be a common skin condition. However, for an accurate diagnosis, I recommend consulting with a dermatologist. Is there anything specific you'd like to know about skin health?"
-      const newMessage = { type: "text", content: aiResponse, sender: "ai" }
-      setMessages((prevMessages) => [...prevMessages, newMessage])
-      scrollToBottom()
-    }, 1000)
-  }
+        "Thank you for your query. Based on the image and your description, it appears to be a common skin condition. However, for an accurate diagnosis, I recommend consulting with a dermatologist. Is there anything specific you'd like to know about skin health?";
+      const newMessage = { type: "text", content: aiResponse, sender: "ai" };
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      scrollToBottom();
+    }, 1000);
+  };
 
   const scrollToBottom = () => {
     if (chatboxRef.current) {
-      chatboxRef.current.scrollTop = chatboxRef.current.scrollHeight
+      chatboxRef.current.scrollTop = chatboxRef.current.scrollHeight;
     }
-  }
+  };
+
+  const handleSubmitImage = async () => {
+    if (!selectedFile) {
+      return alert("Please upload or capture an image first.");
+    }
+    setLoading(true);
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    
+    try {
+      const response = await axios.post("http://localhost:5000/api/pain/skin", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      console.log("Enter the dragon");
+      const diagnosis = response.data.diagnosis || "Unable to provide a diagnosis.";
+      simulateAIResponse(`Diagnosis: ${diagnosis}`);
+    } catch (error) {
+      console.error("Error diagnosing skin condition:", error);
+      simulateAIResponse("Sorry, something went wrong while diagnosing the image.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="skin-diagnosis-container">
@@ -127,6 +152,9 @@ const SkinDiagnosis = () => {
               <FaPaperPlane />
             </button>
           </div>
+          <button onClick={handleSubmitImage} disabled={loading}>
+            {loading ? "Diagnosing..." : "Submit Image for Diagnosis"}
+          </button>
         </section>
 
         <section className="card sessions-card">
@@ -138,8 +166,7 @@ const SkinDiagnosis = () => {
         </section>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SkinDiagnosis
-
+export default SkinDiagnosis;

@@ -1,49 +1,65 @@
-const axios = require("axios");
-const fs = require("fs");
-require("dotenv").config();
+import dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import User from "../models/User.js";
+import axios from "axios";
+import fs from "fs";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key=${GEMINI_API_KEY}`;
+dotenv.config();
 
-// Convert Image to Base64
-function encodeImageToBase64(filePath) {
+const API_KEY = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+
+
+const encodeImageToBase64=(filePath)=> {
     const imageBuffer = fs.readFileSync(filePath);
     return imageBuffer.toString("base64");
 }
 
-// Diagnose Skin Disease
-exports.analyzeSkinDisease = async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ error: "No image uploaded" });
 
+
+/**
+ * Diagnose skin disease using Gemini AI
+ */
+export const analyzeSkinDisease = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No image uploaded" });
+        }
+
+        // Get base64 encoded image
         const base64Image = encodeImageToBase64(req.file.path);
 
-        const requestData = {
-            contents: [
-                {
-                    parts: [
-                        { text: "Analyze this image and detect any possible skin disease." },
-                        {
-                            inlineData: {
-                                mimeType: "image/jpeg",
-                                data: base64Image,
-                            },
-                        },
-                    ],
-                },
-            ],
-        };
+        // Prepare request for Gemini API
+        const prompt = `Analyze this image and detect any possible skin disease: ${base64Image}`;
 
-        const response = await axios.post(GEMINI_URL, requestData, {
-            headers: { "Content-Type": "application/json" },
+        // Generate response from Gemini
+        const result = await model.generateContent(prompt).catch((err) => {
+            console.error("Error generating content from Gemini AI:", err.message);
+            return res.status(500).json({ error: "Error fetching response from Gemini AI." });
         });
+
+        // Extract and process the result
+        const response = result.response;
+        const diagnosis = response ? response.text() : "No diagnosis available.";
+
+        // Store the diagnosis in the user's profile if needed
+        const userId = req.userId;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        user.skinDiagnosis = diagnosis;
+        await user.save();
 
         // Remove uploaded file after processing
         fs.unlinkSync(req.file.path);
 
-        res.json({ diagnosis: response.data });
+        res.json({ source: "Gemini AI", diagnosis });
     } catch (error) {
-        console.error("Error in diagnosis:", error.response?.data || error.message);
-        res.status(500).json({ error: "Failed to analyze image" });
+        console.error("Error in diagnosis:", error);
+        res.status(500).json({ error: "Failed to analyze skin disease. Please try again." });
     }
 };

@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js"; // Import the auth routes
 import painRoutes from "./routes/PainRoutes.js";
-// import skinDiagnosisRoutes from "./routes/skinDiagnosisRoutes.js"
 
 dotenv.config();
 const app = express();
